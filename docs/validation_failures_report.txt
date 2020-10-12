@@ -1,0 +1,9 @@
+Select * from ais_etl.failed_message;
+
+timestamp          |                                                                                                                  errors
+
+----------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+ 2020-10-12 18:20:00.222243 | Chain(AisMessageValidationFailure(Invalid format: "# Timestamp"), AisMessageValidationFailure(For input string: "MMSI"), AisMessageValidationFailure(For i
+nput string: "Latitude"), AisMessageValidationFailure(For input string: "IMO"))
+(1 row)

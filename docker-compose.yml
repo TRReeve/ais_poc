@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  database:
+    image: postgis/postgis
+    environment:
+      POSTGRES_DB: ais_poc
+      POSTGRES_PASSWORD: goodsecurity
+    volumes:
+      - ./database/initialise_db.sql:/docker-entrypoint-initdb.d/initialise_db.sql
+    ports:
+    - "5430:5432"
+  python_enrichment:
+    build: ./python_geo_enrich
+    ports:
+    - "8000:8000"
+  stream_etl:
+    build: .
