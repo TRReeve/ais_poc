@@ -30,6 +30,13 @@ will compile and start the streaming application
 
 password is 'goodsecurity' by default
 
+### Main Directories
+- database/: DDL/Views for SQL component
+- docs/: diagram/reporting sample output
+- python_geo_enrich/: Python service for enriching geo_points
+- src/: main code for streaming dispatcher. 
+
+
 ### Components
 - Main Stream scaffold (Scala + Akka): Extracts, Validates and pushes data to components, also capable of doing its 
 own analytics and rendering them given more dev time.
