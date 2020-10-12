@@ -13,5 +13,6 @@ services:
     build: ./python_geo_enrich
     ports:
     - "8000:8000"
-  stream_etl:
-    build: .
+# Commented out for now due to outgoing traffic timeout for Docker DNS locally
+#  stream_etl:
+#    build: .
