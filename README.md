@@ -28,7 +28,7 @@ will compile and start the streaming application
     psql -d ais_poc -U postgres -h localhost -p 5430
 
 
-password is 'goodsecurity'
+password is 'goodsecurity' by default
 
 ### Components
 - Main Stream scaffold (Scala + Akka): Extracts, Validates and pushes data to components, also capable of doing its 
