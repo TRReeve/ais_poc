@@ -37,13 +37,11 @@ own analytics and rendering them given more dev time.
 this performs a reverse lookup on point information and returns that information to the main stream
 pipeline. This is mainly for demonstrating the capabilities of how we can link together multiple data sources, as 
 well as being a test of FastAPI and uvicorn as opposed to Flask. 
-
 There are automatically generated documentations for the endpoint at localhost:8000/docs when the 
 infrastructure is running
-
 within the framework of streaming as well as giving us a valuable insight into the spatial data.
 - Database (Postgis): Postgres equipped with more geospatial functions. Acts as main 
-sink for data. 
+sink for data. The queries to create tables and views are mounted in docker-compose and then executed at startup time
 
 ### Deployment
 The original plan was to deploy all components in the same docker-compose template
