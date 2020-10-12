@@ -17,7 +17,7 @@ class MockStream(implicit system: ActorSystem) {
   /**
    * Mocks a stream of data by iterating through all the files
    * on the FTP server then streaming each file, then splitting out
-   * each CSV row
+   * each CSV row, leaves in header rows to simulate corrupted records.
    * */
 
   val host = "ftp.ais.dk"
@@ -32,7 +32,7 @@ class MockStream(implicit system: ActorSystem) {
   ).map(_.utf8String)
 
   //  Get all the.csv files we want to use to simulate our "stream"
-  val retrieve_files: Future[Seq[FtpFile]] = Ftp.ls("/ais_data/",ftpSettings)
+  val retrieve_files: Future[Seq[FtpFile]] = Ftp.ls("/ais_data/", ftpSettings)
     .filter(ftpfile => ftpfile.name.contains(".csv"))
     .runWith(Sink.seq)
 
@@ -41,7 +41,7 @@ class MockStream(implicit system: ActorSystem) {
   //  Order the files by their last modified
   // time to simulate a stream running-
   val sort_files: Seq[FtpFile] = Await
-    .result(retrieve_files,2.seconds)
+    .result(retrieve_files, 2.seconds)
     .sortBy(_.lastModified)
 
   // Stream each files contents in the collection
@@ -57,5 +57,5 @@ class MockStream(implicit system: ActorSystem) {
 
 object MockStream {
   def apply(implicit system: ActorSystem):
-    MockStream = new MockStream()
+  MockStream = new MockStream()
 }

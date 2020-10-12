@@ -12,22 +12,13 @@ import org.joda.time.format.DateTimeFormat
 
 import scala.util.{Failure, Success, Try}
 
-case class Point(latitude: Double,
-                 longitude: Double)
-
-case class AisMessage(timestamp: Long,
-                     mobile_type: String,
-                     mmsi: Long,
-                     point: Point,
-                     status: String,
-                     vessel_type: String,
-                     imo: Option[Long])
-
-case class AisMessageValidationFailure(error: String)
-
 sealed trait ValidateData {
+  /**
+   * Handles validation of individual datapoints and chaining them
+   * together with an Applicative to ensure we have a complete valid record
+   * */
 
-  type ValidationResult[A] = ValidatedNec[AisMessageValidationFailure,A]
+  type ValidationResult[A] = ValidatedNec[AisMessageValidationFailure, A]
   private val fmt = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss")
 
   def validateTimestamp(timestamp_string: String): ValidationResult[Long] = {
@@ -56,7 +47,7 @@ sealed trait ValidateData {
 
     Try(long.toLong) match {
       case Failure(exception) => AisMessageValidationFailure(exception.getMessage).invalidNec
-      case Success(value) =>value.validNec
+      case Success(value) => value.validNec
     }
   }
 
@@ -78,27 +69,33 @@ sealed trait ValidateData {
 
     Try(Point(latitude.toDouble, longitude.toDouble)) match {
       case Failure(exception) => AisMessageValidationFailure(exception.getMessage).invalidNec
-      case Success(value) =>value.validNec
+      case Success(value) => value.validNec
     }
   }
 
   def parseAisMessage(csv_row: String): ValidationResult[AisMessage] = {
+
+
     val split_to_array = csv_row.split(",")
 
+    /**
+     * Validate data in parallel to either Failed or Validated AIS Message.
+     * */
     (
-      validateTimestamp(split_to_array(0)),
-      validateString(split_to_array(1)),
-      validateLong(split_to_array(2)),
-      validatePoint(split_to_array(3), split_to_array(4)),
-      validateString(split_to_array(5)),
-      validateString(split_to_array(13)),
-      validateImoNumber(split_to_array(10)))
-      .mapN(AisMessage)
+      validateTimestamp(split_to_array(0)), // timestamp
+      validateString(split_to_array(1)), // mobile type
+      validateLong(split_to_array(2)), //mmsi
+      validatePoint(split_to_array(3), split_to_array(4)), //point
+      validateString(split_to_array(5)), // status
+      validateString(split_to_array(13)), // vessel type
+      validateImoNumber(split_to_array(10))) // imo identifier
+      .mapN(AisMessage) //If all validations successful then we get a fully formed AISMessage
 
   }
 }
 
 class AISValidation(implicit session: SlickSession) extends ValidateData {
+
   import session.profile.api._
 
   val validate_messages: Flow[String, AisMessage, NotUsed] =
@@ -107,13 +104,15 @@ class AISValidation(implicit session: SlickSession) extends ValidateData {
       import GraphDSL.Implicits._
 
       val validate = b.add(Flow[String].map(parseAisMessage))
+
       val broadcast = b.add(Broadcast[ValidationResult[AisMessage]](2))
+
       val collect_failed_messages = b.add(Flow[ValidationResult[AisMessage]]
-        .collect({case Validated.Invalid(failure_message) => failure_message.toString})
-          .via(Slick.flow(msg => sqlu"INSERT INTO ais_etl.failed_message (errors) VALUES (${msg})")))
+        .collect({ case Validated.Invalid(failure_message) => failure_message.toString })
+        .via(Slick.flow(msg => sqlu"INSERT INTO ais_etl.failed_message (errors) VALUES (${msg})")))
 
       val collect_valid_messages = b.add(Flow[ValidationResult[AisMessage]]
-        .collect({case Validated.Valid(message) => message}))
+        .collect({ case Validated.Valid(message) => message }))
 
       validate ~> broadcast ~> collect_failed_messages ~> Sink.ignore
       broadcast ~> collect_valid_messages

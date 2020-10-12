@@ -14,41 +14,30 @@ import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.util.EntityUtils
-
 import scala.util.{Success, Try}
 
-case class PreEnrich(latitude: Double,
-                     longitude: Double,
-                     mmsi: Long,
-                     timestamp: Long)
-
-case class EnrichedMessage(
-                            name: String,
-                            country_code: String,
-                            admin_one: String,
-                            admin_two: String,
-                            latitude: Double,
-                            longitude: Double,
-                            timestamp: Long,
-                            mmsi: Long
-                          )
-
-case class EnrichRequest(geodata: Seq[PreEnrich])
-
-case class EnrichResponse(response: List[EnrichedMessage])
-
 class AnalyticsFanout(implicit session: SlickSession) {
+
+  /**
+   * Handles enrichment and insertion of data in addition to any other
+   * parallel services/models we want to run our data stream through.
+   * */
 
   import session.profile.api._
 
 
   def apiRequest(msg: EnrichRequest): Try[EnrichResponse] = {
 
+    /**
+     * Post Request handling requests and deserialization of geo lookups.
+     * */
+
     val timeout = 1800
+    val timeout_multiplier = 1000
     val requestConfig = RequestConfig.custom()
-      .setConnectTimeout(timeout * 1000)
-      .setConnectionRequestTimeout(timeout * 1000)
-      .setSocketTimeout(timeout * 1000).build()
+      .setConnectTimeout(timeout * timeout_multiplier)
+      .setConnectionRequestTimeout(timeout * timeout_multiplier)
+      .setSocketTimeout(timeout * timeout_multiplier).build()
     val client = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build()
 
     val post_request = new HttpPost("http://localhost:8000/geoenrich")
@@ -69,7 +58,7 @@ class AnalyticsFanout(implicit session: SlickSession) {
 
     val map_to_request: FlowShape[Seq[AisMessage], EnrichRequest] = b.add(Flow[Seq[AisMessage]].map { ais_messages =>
       EnrichRequest(
-        ais_messages.map(x => PreEnrich(x.point.latitude, x.point.longitude, x.mmsi, x.timestamp)))
+        ais_messages.map(x => PreEnrichmentMessage(x.point.latitude, x.point.longitude, x.mmsi, x.timestamp)))
     })
 
     val enrich_data = b.add(Flow[EnrichRequest]
